@@ -9,6 +9,7 @@ import csv
 import traceback
 from sklearn.model_selection import cross_val_score
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.ensemble import RandomForestClassifier
 from random import shuffle
 import sklearn
 from sklearn.svm import SVC
@@ -49,13 +50,11 @@ class Admin(object):
 
 def analyze(question):
 
-    vectorizer = CountVectorizer(min_df=1)
+    vectorizer = TfidfVectorizer(min_df=1)
 
     corpus = []
     for qst in question:
         corpus.append(qst.text)
-
-
 
     vectorizer.fit_transform(corpus)
 
@@ -68,34 +67,29 @@ def analyze(question):
 
     shuffle(data_target_tuples)
 
-    # vectorizerans = CountVectorizer(encoding='unicode', min_df=1)
-    # vectorizerans.fit_transform(data_target_tuples)
-
     x_data = []
     y_target = []
-    # print(data_target_tuples)
-    for t in data_target_tuples:  # vectorizerans.get_feature_names():
-        # bagwords = t[0].split(' ')
-        # for word in bagwords:
-        #     if len(word) > 1:
+    for t in data_target_tuples:
         v = (vectorizer.transform([t[0]]).toarray())[0]
-        print(v, ' ', t[1], ' ')
+        # print(v, ' ', t[1], ' ')
         x_data.append(v)
         y_target.append(t[1])
 
     x_data = np.asarray(x_data)
     y_target = np.asarray(y_target)
+    rand_forest_scorer = RandomForestClassifier(max_depth=15, n_estimators=25, max_features=5)
+    scores = cross_val_score(rand_forest_scorer, x_data, y_target)
+    print("Random Forest", scores.mean(), scores.std() * 2, 5)
 
-
-    linear_svm_classifier = SVC(kernel="linear", C=0.025)
-    scores = cross_val_score(OneVsRestClassifier(linear_svm_classifier), x_data, y_target, cv=2)
-    print("Accuracy using %s: %0.2f (+/- %0.2f) and %d folds" % ("Linear SVM", scores.mean(), scores.std() * 2, 5))
-
-    behavioral_profiler = SVC(kernel="linear", C=0.025)
+    behavioral_profiler = RandomForestClassifier(max_depth=15, n_estimators=25, max_features=5)
     behavioral_profiler.fit(x_data, y_target)
 
-    print(behavioral_profiler.predict(vectorizer.transform(['Вы подключаете asterisk?']).toarray()[0]))
-    # print(behavioral_profiler.predict(vectorizer.transform(['']).toarray()[0]))
+    print(behavioral_profiler.predict(vectorizer.transform(['Какова стоимость и сроки услуг интеграции Vtiger CRM с внешними системами, платформами?']).toarray()[0]))
+    print(behavioral_profiler.predict(vectorizer.transform(['Какова стоимость и сроки услуг интеграции Vtiger CRM с платформами?']).toarray()[0]))
+    print(behavioral_profiler.predict(vectorizer.transform(['Какова стоимость услуг интеграции Vtiger CRM с внешними системами?']).toarray()[0]))
+    print(behavioral_profiler.predict(vectorizer.transform(['Каковы сроки интеграции Vtiger CRM с внешними системами?']).toarray()[0]))
+    print(behavioral_profiler.predict(vectorizer.transform(['Сколько будет стоить интеграция с внешними платформами?']).toarray()[0]))
+    print(behavioral_profiler.predict(vectorizer.transform(['Сколько стоит интеграция с Asterisk?']).toarray()[0]))
 
 
 class Question(object):
