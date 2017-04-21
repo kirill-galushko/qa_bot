@@ -1,23 +1,38 @@
 import argparse
 import traceback
 import glob
-import nltk
 import string
 import random
 import json
+from pytils import translit
+from pymorphy2 import tokenizers, MorphAnalyzer
+import re
 import csv
 import traceback
-from sklearn.model_selection import cross_val_score
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.ensemble import *
+from sklearn.ensemble import RandomForestClassifier
 from random import shuffle
 import heapq
-import sklearn
-from sklearn.svm import SVC
 import numpy as np
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.multiclass import *
+
+latin_pattern = r'[A-Za-z]+'
+morph = MorphAnalyzer()
+
+class Question(object):
+    def __init__(self, answer, id, text):
+        self.answer = answer
+        self.id = id
+        self.text = text
+
+
+def str_handler(in_string):
+    tokens = tokenizers.simple_word_tokenize(re.sub('[!?,.%]', '', in_string))
+    new_strng = ''
+    for word_in in tokens:
+        if re.search(latin_pattern, word_in):
+            word_in = translit.detranslify(word_in)
+        new_strng += morph.parse(word_in)[0].normal_form + ' '
+    return new_strng
 
 
 class Admin(object):
@@ -29,7 +44,7 @@ class Admin(object):
 
         try:
             qa = []
-            with open('qa_sampl2.csv', 'r') as f:
+            with open('new_qa_sample.csv', 'r') as f:
                 reader = csv.reader(f)
                 i = 0
                 for row in reader:
@@ -44,21 +59,21 @@ class Admin(object):
 
 
 def analyze(question):
-
     vectorizer = TfidfVectorizer(min_df=1)
+
 
     corpus = []
     for qst in question:
-        corpus.append(qst.text)
+        corpus.append(str_handler(qst.text))
 
-    words_count = len(corpus)
+    corpus = corpus
     vectorizer.fit_transform(corpus)
     print(vectorizer.get_feature_names()[0:100])
 
     # Randomize the observations
     data_target_tuples = []
     for qst in question:
-        data_target_tuples.append((qst.text, qst.answer))
+        data_target_tuples.append((str_handler(qst.text), qst.answer))
 
     shuffle(data_target_tuples)
 
@@ -66,8 +81,6 @@ def analyze(question):
     y_target = []
     # print(data_target_tuples)
     for t in data_target_tuples:
-        # print((vectorizer.transform(['интеграция']).toarray())[0])
-        # print((vectorizer.transform(['asterisk']).toarray())[0])
         v = (vectorizer.transform([t[0]]).toarray())[0]
         # print(v, ' ', t[0], ' ')
         x_data.append(v)
@@ -75,8 +88,8 @@ def analyze(question):
 
     x_data = np.asarray(x_data)
     y_target = np.asarray(y_target)
-    rand_forest_scorer = RandomForestClassifier(max_depth=15, n_estimators=36, max_features=6)
-    scores = cross_val_score(OneVsRestClassifier(rand_forest_scorer), x_data, y_target)
+    # rand_forest_scorer = RandomForestClassifier(max_depth=15, n_estimators=36, max_features=6)
+    # scores = cross_val_score(OneVsRestClassifier(rand_forest_scorer), x_data, y_target)
     # print("Random Forest", scores.mean(), scores.std() * 2, 5)
 
     behavioral_profiler = RandomForestClassifier(max_depth=15, n_estimators=36, max_features=6)
@@ -84,40 +97,29 @@ def analyze(question):
 
     x_test = []
     test_data = [
-                 'Какова стоимость и сроки услуг интеграции Vtiger CRM с внешними системами, платформами?',
-                 'Какова стоимость и сроки услуг интеграции Vtiger CRM с платформами?',
-                 'Какова стоимость услуг интеграции Vtiger CRM с внешними системами?',
-                 'Каковы сроки интеграции Vtiger CRM с внешними системами?',
-                 'Сколько будет стоить интеграция с внешними платформами?',
-                 'Во сколько обойдется интеграция с Asterisk?']
+        'Какова стоимость и сроки услуг интеграции Vtiger CRM с внешними системами, платформами?',
+        'Какова стоимость и сроки услуг интеграции Vtiger CRM с платформами?',
+        'Какова стоимость услуг интеграции Vtiger CRM с внешними системами?',
+        'Каковы сроки интеграции Vtiger CRM с внешними системами?',
+        'Сколько будет стоить интеграция с внешними платформами?',
+        'Какова стоимость интеграции с Asterisk?',
+        'Какова стоимость интеграции с Астериском?'
+    ]
 
-    # print(test_data)
     for t in test_data:
-        v = (vectorizer.transform([t]).toarray())[0]
-        # print(v, ' ', t, ' ')
+        v = (vectorizer.transform([str_handler(t)]).toarray())[0]
         x_test.append(v)
 
-    # print(behavioral_profiler.predict(vectorizer.transform(['Какова стоимость и сроки услуг интеграции Vtiger CRM с внешними системами, платформами?']).toarray()[0]))
-    # print(behavioral_profiler.predict(vectorizer.transform(['Какова стоимость и сроки услуг интеграции Vtiger CRM с платформами?']).toarray()[0]))
-    # print(behavioral_profiler.predict(vectorizer.transform(['Какова стоимость услуг интеграции Vtiger CRM с внешними системами?']).toarray()[0]))
-    # print(behavioral_profiler.predict(vectorizer.transform(['Каковы сроки интеграции Vtiger CRM с внешними системами?']).toarray()[0]))
-    # print(behavioral_profiler.predict(vectorizer.transform(['Сколько будет стоить интеграция с внешними платформами?']).toarray()[0]))
-    # print(behavioral_profiler.predict(vectorizer.transform(['Во сколько обойдется интеграция с Asterisk?']).toarray()[0]))
 
     predict_data = behavioral_profiler.predict_proba(x_test)
-    print(predict_data)
+    # print(predict_data)
     for i in predict_data:
-        print(i.max())
+        # print(heapq.nlargest(3,  i))
         for j in i:
-            if (j in heapq.nlargest(2, i)):
+            if (j in heapq.nlargest(3, i)):
+                # print(('%.8f' % j), heapq.nlargest(3, ['%.8f' % elem for elem in i]))
                 print(behavioral_profiler.classes_[i.tolist().index(j)])
-
-
-class Question(object):
-    def __init__(self, answer, id, text):
-        self.answer = answer
-        self.id = id
-        self.text = text
+        print('\n')
 
 if __name__ == "__main__":
     Admin().main()
