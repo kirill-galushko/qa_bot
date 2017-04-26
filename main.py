@@ -15,16 +15,19 @@ from random import shuffle
 import heapq
 import numpy as np
 
+# Регулярное выражение для латинских букв
 latin_pattern = r'[A-Za-z]+'
+# MorphAnalyzer для нормализации слов
 morph = MorphAnalyzer()
 
+# Класс для вопросов
 class Question(object):
     def __init__(self, answer, id, text):
         self.answer = answer
         self.id = id
         self.text = text
 
-
+# Обработчик строк. Удаление лишних символов, детранслитерация, нормализация(приведение к инфинитиву).
 def str_handler(in_string):
     tokens = tokenizers.simple_word_tokenize(re.sub('[!?,.%]', '', in_string))
     new_strng = ''
@@ -42,6 +45,7 @@ class Admin(object):
 
         args = parser.parse_args()
 
+        # Импорт csv базы вопросов
         try:
             qa = []
             with open('new_qa_sample.csv', 'r') as f:
@@ -57,26 +61,29 @@ class Admin(object):
         except:
             traceback.print_exc()
 
-
+# Функция анализа базы вопросов и последующего предсказания
 def analyze(question):
+    # Создание TFID векторайзера
     vectorizer = TfidfVectorizer(min_df=1)
 
-
+    # Обработка строк вопросов
     corpus = []
     for qst in question:
         corpus.append(str_handler(qst.text))
 
+    # Обучение векторайзера на уже подготовленной базе
     corpus = corpus
     vectorizer.fit_transform(corpus)
     print(vectorizer.get_feature_names()[0:100])
 
-    # Randomize the observations
+    # Перемешивание выборки для внесения элемента случайности
     data_target_tuples = []
     for qst in question:
         data_target_tuples.append((str_handler(qst.text), qst.answer))
 
     shuffle(data_target_tuples)
 
+    # Трансформация вопросов в матричный вид, на основе TFID критерия
     x_data = []
     y_target = []
     # print(data_target_tuples)
@@ -88,13 +95,18 @@ def analyze(question):
 
     x_data = np.asarray(x_data)
     y_target = np.asarray(y_target)
+    # Тестовая валидация
+
     # rand_forest_scorer = RandomForestClassifier(max_depth=15, n_estimators=36, max_features=6)
     # scores = cross_val_score(OneVsRestClassifier(rand_forest_scorer), x_data, y_target)
     # print("Random Forest", scores.mean(), scores.std() * 2, 5)
 
+
+    # Обучение случайного леса с заданными параметрами
     behavioral_profiler = RandomForestClassifier(max_depth=15, n_estimators=36, max_features=6)
     behavioral_profiler.fit(x_data, y_target)
 
+    # Инициализация тестовой выборки
     x_test = []
     test_data = [
         'Какова стоимость и сроки услуг интеграции Vtiger CRM с внешними системами, платформами?',
@@ -106,18 +118,19 @@ def analyze(question):
         'Какова стоимость интеграции с Астериском?'
     ]
 
+    # Обработка тестовой выборки
     for t in test_data:
         v = (vectorizer.transform([str_handler(t)]).toarray())[0]
         x_test.append(v)
 
-
+    # Предсказание вероятностей каждого ответа для каждого вопроса из тестовой выборки
     predict_data = behavioral_profiler.predict_proba(x_test)
-    # print(predict_data)
+
+    # Вывод 3 наиболее вероятных ответов
     for i in predict_data:
         # print(heapq.nlargest(3,  i))
         for j in i:
             if (j in heapq.nlargest(3, i)):
-                # print(('%.8f' % j), heapq.nlargest(3, ['%.8f' % elem for elem in i]))
                 print(behavioral_profiler.classes_[i.tolist().index(j)])
         print('\n')
 
