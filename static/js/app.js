@@ -45,7 +45,7 @@
     function sourceView() {
         
         resetToolbar();
-        
+
         $('#sourceButton').attr("class", "btn btn-primary active");
         
         $('#editor').css('display', 'block');
