@@ -74,6 +74,11 @@ if (typeof JSV === 'undefined') {
         maxDepth: 20,
 
         /**
+         * Default height between children nodes
+         */
+        heightBetween: 45,
+
+        /**
          * @property {object} labels Nodes to render as non-clickable in the tree. They will auto-expand if child nodes are present.
          */
         labels: {
@@ -642,6 +647,7 @@ if (typeof JSV === 'undefined') {
 
             ul.on('click', function(e) {
                 var path = $(e.target).attr('data-path');
+                alert(path);
                 var node = JSV.expandNodePath(path.split('-'));
 
                 JSV.flashNode(node);
@@ -1090,17 +1096,27 @@ if (typeof JSV === 'undefined') {
                 }
             };
             childCount(0, root);
-            var newHeight = d3.max(levelWidth) * 45; // 25 pixels per line
+
+            var nodes = JSV.tree.nodes(root).reverse();
+            nodes.forEach(function(d) {
+                var count = Math.ceil(d.name.length/75);
+                alert(count);
+            if (count * 75 > JSV.heightBetween) {
+                JSV.heightBetween = count * 45;
+            }
+            });
+
+            var newHeight = d3.max(levelWidth) * JSV.heightBetween; // 25 pixels per line
             JSV.tree.size([newHeight, JSV.viewerWidth]);
 
             // Compute the new tree layout.
-            var nodes = JSV.tree.nodes(root).reverse(),
+
                 links = JSV.tree.links(nodes);
 
             // Set widths between levels based on maxLabelLength.
             nodes.forEach(function(d) {
                 // d.y = (d.depth * 160); //maxLabelLength * 8px
-                d.y = (d.depth * (JSV.maxLabelLength * 8)); //maxLabelLength * 8px
+                d.y = (d.depth * JSV.maxLabelLength * 2); //maxLabelLength * 8px
 
                 // alternatively to keep a fixed scale one can set a fixed depth per level
                 // Normalize for fixed-depth by commenting out below line
@@ -1152,7 +1168,18 @@ if (typeof JSV === 'undefined') {
                     return 'start';
                 })
                 .text(function(d) {
-                    return d.name + (d.require ? '*' : '');
+                    function chunk(str, n) {
+                        var ret = [];
+                        var i;
+                        var len;
+
+                        for(i = 0, len = str.length; i < len; i += n) {
+                           ret.push(str.substr(i, n))
+                        }
+
+                        return ret
+                    };
+                    return chunk(d.name + (d.require ? '*' : ''),75).join('\n')
                 })
                 .style('fill-opacity', 0)
                 .on('click', JSV.clickTitle)

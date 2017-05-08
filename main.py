@@ -22,10 +22,9 @@ morph = MorphAnalyzer()
 
 # Класс для вопросов
 class Question(object):
-    def __init__(self, answer, id, text):
-        self.answer = answer
-        self.id = id
+    def __init__(self, text, answer):
         self.text = text
+        self.answer = answer
 
 # Обработчик строк. Удаление лишних символов, детранслитерация, нормализация(приведение к инфинитиву).
 def str_handler(in_string):
@@ -37,32 +36,22 @@ def str_handler(in_string):
         new_strng += morph.parse(word_in)[0].normal_form + ' '
     return new_strng
 
+def main(args):
+    # Импорт csv базы вопросов
+    qa = []
+    with open('new_qa_sample.csv', 'r') as f:
+        reader = csv.reader(f)
+        i = 0
+        for row in reader:
+            i += 1
+            qa.append(Question(row[0], row[1]))
 
-class Admin(object):
-    def main(self):
+    # print(data)
+    return analyze(qa, args)
 
-        parser = argparse.ArgumentParser(description='modeling Q&A system')
-
-        args = parser.parse_args()
-
-        # Импорт csv базы вопросов
-        try:
-            qa = []
-            with open('new_qa_sample.csv', 'r') as f:
-                reader = csv.reader(f)
-                i = 0
-                for row in reader:
-                    i += 1
-                    qa.append(Question(row[1], i, row[0]))
-
-            # print(data)
-            analyze(qa)
-
-        except:
-            traceback.print_exc()
 
 # Функция анализа базы вопросов и последующего предсказания
-def analyze(question):
+def analyze(question, args):
     # Создание TFID векторайзера
     vectorizer = TfidfVectorizer(min_df=1)
 
@@ -74,7 +63,7 @@ def analyze(question):
     # Обучение векторайзера на уже подготовленной базе
     corpus = corpus
     vectorizer.fit_transform(corpus)
-    print(vectorizer.get_feature_names()[0:100])
+    # print(vectorizer.get_feature_names()[0:100])
 
     # Перемешивание выборки для внесения элемента случайности
     data_target_tuples = []
@@ -108,31 +97,27 @@ def analyze(question):
 
     # Инициализация тестовой выборки
     x_test = []
-    test_data = [
-        'Какова стоимость и сроки услуг интеграции Vtiger CRM с внешними системами, платформами?',
-        'Какова стоимость и сроки услуг интеграции Vtiger CRM с платформами?',
-        'Какова стоимость услуг интеграции Vtiger CRM с внешними системами?',
-        'Каковы сроки интеграции Vtiger CRM с внешними системами?',
-        'Сколько будет стоить интеграция с внешними платформами?',
-        'Какова стоимость интеграции с Asterisk?',
-        'Какова стоимость интеграции с Астериском?'
-    ]
+    # test_data = [
+    #     'Какова стоимость и сроки услуг интеграции Vtiger CRM с внешними системами, платформами?',
+    #     'Какова стоимость и сроки услуг интеграции Vtiger CRM с платформами?',
+    #     'Какова стоимость услуг интеграции Vtiger CRM с внешними системами?',
+    #     'Каковы сроки интеграции Vtiger CRM с внешними системами?',
+    #     'Сколько будет стоить интеграция с внешними платформами?',
+    #     'Какова стоимость интеграции с Asterisk?',
+    #     'Какова стоимость интеграции с Астериском?'
+    # ]
 
     # Обработка тестовой выборки
-    for t in test_data:
-        v = (vectorizer.transform([str_handler(t)]).toarray())[0]
-        x_test.append(v)
+    v = (vectorizer.transform([str_handler(args)]).toarray())[0]
 
     # Предсказание вероятностей каждого ответа для каждого вопроса из тестовой выборки
-    predict_data = behavioral_profiler.predict_proba(x_test)
-
+    predict_data = behavioral_profiler.predict_proba(v)
+    ans = []
     # Вывод 3 наиболее вероятных ответов
     for i in predict_data:
         # print(heapq.nlargest(3,  i))
         for j in i:
             if (j in heapq.nlargest(3, i)):
-                print(behavioral_profiler.classes_[i.tolist().index(j)])
-        print('\n')
+                ans.append(behavioral_profiler.classes_[i.tolist().index(j)] + '\n')
 
-if __name__ == "__main__":
-    Admin().main()
+    return ans

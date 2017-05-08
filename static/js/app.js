@@ -1,39 +1,16 @@
 (function(global) { 
     
     function init() {
-    
-        setupEditor();
-        
+
         setupEvents();
 
         visualizeView();
 
-        /*$('#editor').css('display', 'none');
-
-        JSV.init({
-            plain: true,
-            schema: schema,
-            viewerHeight: $('#main-body').height(),
-            viewerWidth: $('#main-body').width()
-        }, function() {
-            $('#jsv-tree').css('width', '100%');
-            JSV.resizeViewer();
-        });*/
 
     }
-    
-    function setupEditor() {
-    
-        global.jsonEditor = ace.edit("editor");
-        global.jsonEditor.setTheme("ace/theme/chrome");
-        global.jsonEditor.getSession().setMode("ace/mode/json");
-        global.jsonEditor.setFontSize(14);
 
-    }
-    
     function setupEvents() {
-        
-        $('#sourceButton').click(sourceView);
+
         $('#visualizeButton').click(visualizeView);
     
     }
@@ -42,23 +19,12 @@
         $('#app-toolbar button').attr("class", "btn btn-default");
     }
     
-    function sourceView() {
-        
-        resetToolbar();
-
-        $('#sourceButton').attr("class", "btn btn-primary active");
-        
-        $('#editor').css('display', 'block');
-        
-        global.jsonEditor.focus();
-    }
-    
     function visualizeView() {
         
         var schema = {};
-        
+        var this_script = $('script[src*="/static/js/app.js"]');
         try {
-            schema = JSON.parse(global.jsonEditor.getValue());
+            schema = JSON.parse(this_script.attr('inner_json'));
         } catch (e) {
             alert(e.toString());
             return;

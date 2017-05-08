@@ -28,49 +28,10 @@
       
     <!-- Nav/Toolbar -->
     <div class="btn-group" id="app-toolbar">
-        <button id="sourceButton" type="button" class="btn btn-default"><span class="glyphicon glyphicon-align-left"> </span> Source</button>
         <button id="visualizeButton" type="button" class="btn btn-default"><span class="glyphicon glyphicon-eye-open"> </span> Visualize</button>
-        <button id="validateButton" type="button" class="btn btn-default"><span class="glyphicon glyphicon-ok"> </span> Validate</button>
+        <!--<button id="validateButton" type="button" class="btn btn-default"><span class="glyphicon glyphicon-ok"> </span> Validate</button>-->
     </div>
-    
-    <!-- Editor -->
-    <div id="editor">{
-    	"title": "Здравствуйте, что вас интересует?",
-    	"type": "object",
-    	"properties": {
-    		"Vtiger CRM": {
-    			"type": "Отлично, в какой сфере вы работаете?"
-    		},
-    		"Asterisk": {
-                "type": "array",
-                "items": [{
-                "type": "qqq"
-                },
-                {
-                "type": "array",
-                "items": [{
-                "type": "1"
-                },
-                {
-                "type": "2"
-                }]
-                },
-                {
-                "type": "rrr"
-                },
-                {
-                "type": "ttt"
-                },
-                {
-                "type": "ff"
-                }]
-            },
-    		"Прайс-лист": {
-    			"type": "Ссылка"
-    		}
-    	}
-        }</div>
-    
+
     <!-- JSV -->
     <div id="main-body"></div>
     <script>
@@ -86,7 +47,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tv4/1.2.7/tv4.min.js"></script>
     <script src="{{ url_for('static', filename='js/jsv.js') }}"></script>
     <script src="{{ url_for('static', filename='js/ref-parser.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}" inner_json='{{context}}'></script>
     <script>
       NProgress.done();
     </script>
