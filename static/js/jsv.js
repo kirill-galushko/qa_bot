@@ -647,7 +647,6 @@ if (typeof JSV === 'undefined') {
 
             ul.on('click', function(e) {
                 var path = $(e.target).attr('data-path');
-                alert(path);
                 var node = JSV.expandNodePath(path.split('-'));
 
                 JSV.flashNode(node);
@@ -1100,7 +1099,6 @@ if (typeof JSV === 'undefined') {
             var nodes = JSV.tree.nodes(root).reverse();
             nodes.forEach(function(d) {
                 var count = Math.ceil(d.name.length/75);
-                alert(count);
             if (count * 75 > JSV.heightBetween) {
                 JSV.heightBetween = count * 45;
             }
