@@ -67,22 +67,22 @@ def get_most_probable(profiler, v):
     return ans
 
 
-def main(args):
+def main(args, tag):
     """Функция генерирующая ответы на вопросы
 
     Keyword arguments:
-    args -- объект обученного случайного леса
+    args -- Текст вопрос
+    tag -- Тэг вопроса
 
     """
 
     # Импорт csv базы вопросов
     qa = []
-    with open('new_qa_sample.csv', 'r') as f:
+    with open('qa_sample.csv', 'r') as f:
         reader = csv.reader(f)
-        i = 0
         for row in reader:
-            i += 1
-            qa.append(Question(row[0], row[1]))
+            if tag in row[2]:
+                qa.append(Question(row[0], row[1]))
 
     return analyze(qa, args)
 
