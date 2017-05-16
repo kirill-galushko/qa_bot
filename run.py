@@ -10,7 +10,7 @@ tags = ['CRM', 'Тестирование', 'Коммерция', 'Консалт
 @app.route("/")
 def web_hook():
     bot.remove_webhook()
-    bot.set_webhook(url="https://ссылка на приложение/токен вашего бота")
+    bot.set_webhook(url="https://qandabot.herokuapp.com/343114871:AAH7VQdTnblr9szIKwH_CtibzWrQVv-qajU")
     return "CONNECTED", 200
 
 @app.route('/hello')
