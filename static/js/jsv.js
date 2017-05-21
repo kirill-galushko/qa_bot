@@ -978,6 +978,10 @@ if (typeof JSV === 'undefined') {
                   JSV.setInfo(d);
                   panel.panel( 'open' );
                 }
+
+                $.get( "/getmethod/"+d.name);
+
+
             }
         },
 

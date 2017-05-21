@@ -86,6 +86,15 @@
   }
 }
 
+    // $(function() {
+    //     JSV.schema(function() {
+    //       $.getJSON('http://localhost:5000/viewer/update_json', function(data) {
+    //           JSV.schema(data.result);
+    //       });
+    //       return;
+    //     });
+    //   visualizeView();
+    // });
     $(init);
     
 })(window);

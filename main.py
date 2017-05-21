@@ -67,12 +67,12 @@ def get_most_probable(profiler, v):
     return ans
 
 
-def main(args, tag):
-    """Функция генерирующая ответы на вопросы
+def preprocessing(tag, question):
+    """Функция, которая подготавливает выборку в зависимости от выбранного тэга
 
     Keyword arguments:
-    args -- Текст вопрос
     tag -- Тэг вопроса
+    question -- Текст вопроса
 
     """
 
@@ -84,14 +84,14 @@ def main(args, tag):
             if tag in row[2]:
                 qa.append(Question(row[0], row[1]))
 
-    return analyze(qa, args)
+    return analyze(qa, question)
 
 
-def analyze(question, args):
+def analyze(questions, args):
     """Функция анализа базы вопросов и последующего предсказания
 
     Keyword arguments:
-    question -- вектор объектов вопрос-ответ
+    questions -- вектор объектов вопрос-ответ
     args -- заданный вопрос
 
     """
@@ -101,7 +101,7 @@ def analyze(question, args):
 
     # Обработка строк вопросов
     corpus = []
-    for qst in question:
+    for qst in questions:
         corpus.append(str_handler(qst.text))
 
     # Обучение векторайзера на уже подготовленной базе
@@ -110,7 +110,7 @@ def analyze(question, args):
 
     # Перемешивание выборки для внесения элемента случайности
     data_target_tuples = []
-    for qst in question:
+    for qst in questions:
         data_target_tuples.append((str_handler(qst.text), qst.answer))
 
     shuffle(data_target_tuples)
