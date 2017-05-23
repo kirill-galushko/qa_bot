@@ -1,67 +1,84 @@
 from flask import Flask, render_template, json, request
+from flask_socketio import SocketIO, send, emit
 from main import preprocessing
 from telebot import types, TeleBot
 from telebot.util import async
 import _thread
-import os
 
+
+async_mode = None
 tkn = '343114871:AAH7VQdTnblr9szIKwH_CtibzWrQVv-qajU'
 app = Flask(__name__)
+socketio = SocketIO(app, async_mode=async_mode)
 bot = TeleBot(tkn)
 tags = ['CRM', 'Тестирование', 'Коммерция', 'Консалтинг', 'Сервер', 'Интеграция', 'Телефония', 'Сайт']
 
+global current_chat_id
 
-class curr_conf:
-    current_chat_id = 0
-    current_tag = []
 
 @app.route('/hello')
 def hello():
     return 'Hello World'
 
 
-@app.route('/getmethod/<jsdata>')
-def get_javascript_data(jsdata):
-    test_send(jsdata)
-    return jsdata
+def update_json(tag, question):
+    result = preprocessing(tag, question)
+    data = {"title": "Здравствуйте, что вас интересует?",
+            "type": "object",
+            "properties": {tag: {
+                "type": result[0]},
+                tag + "2": {
+                    "type": result[1]},
+                tag + "3": {
+                    "type": result[2]}
+            }
+            }
+    socketio.emit('update json', json.dumps(data, indent=2, separators=(', ', ': ')), namespace='/socket')
 
 
-@app.route('/update_json', methods=['POST'])
-def update_json(json_var):
-    return json.dumps(json_var)
+@socketio.on('connect', namespace='/socket')
+def test_connect():
+    emit('Connect response', {'data': 'Connected'})
+
+
+@socketio.on('disconnect', namespace='/socket')
+def test_disconnect():
+    print('Client disconnected')
+
+
+@socketio.on('receive answer', namespace='/socket')
+def get_javascript_data(answer):
+    print(answer.data)
+    test_send(answer.data)
 
 
 @async()
 def test_send(text):
-    bot.send_message(curr_conf.current_chat_id, text)  # номер чата с десктопного приложения
+    bot.send_message(current_chat_id, text)  # номер чата с десктопного приложения
 
 
 @app.route('/viewer/')
-def get_view(tag, question_text):
+def get_view():
     data = {"title": "Здравствуйте, что вас интересует?",
-            "type": "object",
-            "properties": {tag: {
-                "type": preprocessing(tag, question_text)[0]},
-                tag + "2": {
-                "type": preprocessing(tag, question_text)[1]},
-                tag + "3": {
-                "type": preprocessing(tag, question_text)[2]}
-            }
+            "type": "object"
             }
     print(data)
-    return render_template('index.html', context=json.dumps(data, indent=2, separators=(', ', ': ')))
+    return render_template('index.html',
+                           context=json.dumps(data, indent=2, separators=(', ', ': ')),
+                           async_mode=socketio.async_mode)
 
 
 @bot.message_handler(commands=['start'])
 def handle_text(message):
     answer = "Начало диалога"
-    curr_conf.current_chat_id = message.chat.id
+    app.current_chat_id = message.chat.id
     log(message, answer)
     keyboard = types.ReplyKeyboardMarkup(True, False)
     keyboard.add(*[types.KeyboardButton('Начать диалог')])
     bot.send_message(message.chat.id,
-                     """Здравствуйте, вас преведствует система консультации Salesplatform.""",
-                     reply_markup=keyboard, parse_mode="Markdown")
+                     """Здравствуйте, вас приветствует система консультации.""",
+                     reply_markup=keyboard,
+                     parse_mode="Markdown")
 
 # ВЫВОД ЛОГОВ
 print(bot.get_me())
@@ -83,7 +100,10 @@ def handle_tags(message):
     answer = """Выберете интересующую вас тему."""
     keyboard = types.ReplyKeyboardMarkup(True, False)
     keyboard.add(*[types.KeyboardButton(tag) for tag in tags])
-    bot.send_message(message.chat.id, answer, reply_markup=keyboard, parse_mode="Markdown")
+    bot.send_message(message.chat.id,
+                     answer,
+                     reply_markup=keyboard,
+                     parse_mode="Markdown")
 
     log(message, answer)
 
@@ -92,30 +112,32 @@ def handle_tags(message):
 def handle_text(message):
     answer = """Хорошо. Задайте ваш вопрос."""
     keyboard = types.ReplyKeyboardMarkup(True, False)
-    bot.send_message(message.chat.id, answer, reply_markup=keyboard)
+    bot.send_message(message.chat.id,
+                     answer,
+                     reply_markup=keyboard)
 
-    curr_conf.current_tag = message.text
-    print(curr_conf.current_tag)
     log(message, answer)
 
 
 @bot.message_handler(func=lambda message: message.text[-1:] == '?', content_types=['text'])
 def handle_text2(message):
-    answer = """Пожалуйста подождите."""
+    answer = """Пожалуйста, подождите."""
     keyboard = types.ReplyKeyboardMarkup(True, False)
-    bot.send_message(message.chat.id, answer, reply_markup=keyboard)
+    bot.send_message(message.chat.id,
+                     answer,
+                     reply_markup=keyboard)
 
     log(message, answer)
-    print(curr_conf.current_tag)
-    get_view(curr_conf.current_tag, message.text)
+    update_json('CRM', message.text)
 
 
-def flask_thread():
-    app.run()
+def bot_thread():
+    bot.polling(none_stop=True)
 
 if __name__ == "__main__":
-    _thread.start_new_thread(flask_thread, ())
-    bot.polling(none_stop=True)
+    _thread.start_new_thread(bot_thread, ())
+    socketio.run(app)
+
 
 
 

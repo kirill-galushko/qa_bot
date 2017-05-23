@@ -4,10 +4,15 @@
 
         setupEvents();
 
-        visualizeView();
+        visualizeView($('script[src*="/static/js/app.js"]').attr('inner_json'));
 
 
     }
+
+    var socket = io.connect('http://' + document.domain + ':' + location.port + '/socket');
+    socket.on('update json', function(json_obj) {
+        visualizeView(json_obj);
+    });
 
     function setupEvents() {
 
@@ -19,12 +24,11 @@
         $('#app-toolbar button').attr("class", "btn btn-default");
     }
     
-    function visualizeView() {
+    function visualizeView(this_script) {
         
         var schema = {};
-        var this_script = $('script[src*="/static/js/app.js"]');
         try {
-            schema = JSON.parse(this_script.attr('inner_json'));
+            schema = JSON.parse(this_script);
         } catch (e) {
             alert(e.toString());
             return;
@@ -47,7 +51,8 @@
                 plain: true,
                 schema: resolvedSchema,
                 viewerHeight: $('#main-body').height(),
-                viewerWidth: $('#main-body').width()
+                viewerWidth: $('#main-body').width(),
+                callbackSocket: socket
             }, function() {
                 $('#jsv-tree').css('width', '100%');
                 JSV.resizeViewer();
@@ -86,15 +91,6 @@
   }
 }
 
-    // $(function() {
-    //     JSV.schema(function() {
-    //       $.getJSON('http://localhost:5000/viewer/update_json', function(data) {
-    //           JSV.schema(data.result);
-    //       });
-    //       return;
-    //     });
-    //   visualizeView();
-    // });
     $(init);
     
 })(window);

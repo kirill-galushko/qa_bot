@@ -56,6 +56,8 @@ if (typeof JSV === 'undefined') {
          */
         viewerWidth: 0,
 
+        callbackSocket: 0,
+
         /**
          * The default duration of the node transitions
          */
@@ -979,7 +981,9 @@ if (typeof JSV === 'undefined') {
                   panel.panel( 'open' );
                 }
 
-                $.get( "/getmethod/"+d.name);
+
+                JSV.callbackSocket.emit('receive answer', {data: 10});
+
 
 
             }
