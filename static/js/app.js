@@ -9,17 +9,18 @@
 
     }
 
-    var socket = io.connect('http://' + document.domain + ':' + location.port + '/socket');
-    socket.on('update json', function(json_obj) {
-        visualizeView(json_obj);
-    });
 
     function setupEvents() {
 
         $('#visualizeButton').click(visualizeView);
+        $('#sendButton').click(sendToServer);
     
     }
-    
+
+    function sendToServer() {
+        socket.emit('receive answer', JSV.callback);
+    }
+
     function resetToolbar() {
         $('#app-toolbar button').attr("class", "btn btn-default");
     }
@@ -52,7 +53,7 @@
                 schema: resolvedSchema,
                 viewerHeight: $('#main-body').height(),
                 viewerWidth: $('#main-body').width(),
-                callbackSocket: socket
+                callback: ''
             }, function() {
                 $('#jsv-tree').css('width', '100%');
                 JSV.resizeViewer();
@@ -90,6 +91,11 @@
     return replacer == null ? value : replacer.call(this, key, value)
   }
 }
+
+    var socket = io.connect('http://localhost:' + location.port + '/socket');
+    socket.on('update json', function(json_obj) {
+        visualizeView(json_obj);
+    });
 
     $(init);
     

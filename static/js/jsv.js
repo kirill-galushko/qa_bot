@@ -56,7 +56,7 @@ if (typeof JSV === 'undefined') {
          */
         viewerWidth: 0,
 
-        callbackSocket: 0,
+        callback: '',
 
         /**
          * The default duration of the node transitions
@@ -981,9 +981,12 @@ if (typeof JSV === 'undefined') {
                   panel.panel( 'open' );
                 }
 
-
-                JSV.callbackSocket.emit('receive answer', {data: 10});
-
+                JSV.callback = d.name;
+                // var socket = io.connect('http://localhost:' + location.port + '/answ');
+                // // JSV.callbackSocket.emit('receive answer', {data: d.name});
+                // socket.on("connect", function() {
+                //     socket.emit('receive answer', {data: d.name});
+                // });
 
 
             }
