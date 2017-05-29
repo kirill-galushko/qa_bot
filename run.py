@@ -8,12 +8,13 @@ import _thread
 
 tkn = '343114871:AAH7VQdTnblr9szIKwH_CtibzWrQVv-qajU'
 app = Flask(__name__)
+app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'
+
 socketio = SocketIO(app)
 bot = TeleBot(tkn)
 tags = ['CRM', 'Тестирование', 'Коммерция', 'Консалтинг',
         'Сервер', 'Интеграция', 'Телефония', 'Сайт']
 
-global current_chat_id
 
 
 @app.route('/hello')
@@ -21,7 +22,9 @@ def hello():
     return 'Hello World'
 
 
-def update_json(tag, question):
+def update_json(tag, question, client_id):
+    global current_chat_id
+    current_chat_id = client_id
     result = preprocessing(tag, question)
     data = {"title": "Здравствуйте, что вас интересует?",
             "type": "object",
@@ -54,8 +57,8 @@ def get_javascript_data(message):
 
 @async()
 def test_send(text):
-    print(session['client'])
-    bot.send_message(session['client'], text)  # номер чата с десктопного приложения
+    print(current_chat_id)
+    bot.send_message(current_chat_id, text)  # номер чата с десктопного приложения
 
 
 @app.route('/viewer/')
@@ -70,7 +73,6 @@ def get_view():
 @bot.message_handler(commands=['start'])
 def handle_text(message):
     answer = "Начало диалога"
-    app.session['client'] = message.chat.id
     log(message, answer)
     keyboard = types.ReplyKeyboardMarkup(True, False)
     keyboard.add(*[types.KeyboardButton('Начать диалог')])
@@ -121,7 +123,8 @@ def handle_text2(message):
     bot.send_message(message.chat.id, answer)
 
     log(message, answer)
-    update_json('CRM', message.text)
+
+    update_json('CRM', message.text, message.chat.id)
 
 
 def bot_thread():
