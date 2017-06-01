@@ -982,12 +982,6 @@ if (typeof JSV === 'undefined') {
                 }
 
                 JSV.callback = d.name;
-                // var socket = io.connect('http://localhost:' + location.port + '/answ');
-                // // JSV.callbackSocket.emit('receive answer', {data: d.name});
-                // socket.on("connect", function() {
-                //     socket.emit('receive answer', {data: d.name});
-                // });
-
 
             }
         },

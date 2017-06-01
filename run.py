@@ -16,26 +16,37 @@ tags = ['CRM', 'Тестирование', 'Коммерция', 'Консалт
         'Сервер', 'Интеграция', 'Телефония', 'Сайт']
 
 
-
 @app.route('/hello')
 def hello():
     return 'Hello World'
+
+
+def json_generator(array):
+    result = {}
+    for idx, val in enumerate(array):
+        if val:
+            result[str(val)] = '0'
+        else:
+            result[str(idx)] = '0'
+
+    return result
 
 
 def update_json(tag, question, client_id):
     global current_chat_id
     current_chat_id = client_id
     result = preprocessing(tag, question)
-    data = {"title": "Здравствуйте, что вас интересует?",
-            "type": "object",
-            "properties": {tag: {
-                "type": result[0]},
-                tag + "2": {
-                    "type": result[1]},
-                tag + "3": {
-                    "type": result[2]}
-            }
-            }
+    keysfor = list(result.keys())
+    print(keysfor)
+    data = {'title': "Тема: " + tag + "    Вопрос: " + question,
+            'type': "object",
+            'properties': {'first': dict(title=keysfor[0],
+                                         properties=json_generator(result[keysfor[0]])),
+                           'second': dict(title=keysfor[1],
+                                          properties=json_generator(result[keysfor[1]])),
+                           'third': dict(title=keysfor[2],
+                                         properties=json_generator(result[keysfor[2]]))}}
+
     socketio.emit('update json', json.dumps(data, indent=2, separators=(', ', ': ')), namespace='/socket')
 
 
@@ -63,7 +74,7 @@ def test_send(text):
 
 @app.route('/viewer/')
 def get_view():
-    data = {"title": "Здравствуйте, что вас интересует?",
+    data = {"title": "Ожидание диалога",
             "type": "object"
             }
     return render_template('index.html',

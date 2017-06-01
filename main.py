@@ -14,6 +14,8 @@ from sklearn.ensemble import RandomForestClassifier
 from random import shuffle
 from heapq import nlargest
 import numpy as np
+import redis
+from collections import defaultdict
 
 # Регулярное выражение для латинских букв
 latin_pattern = r'[A-Za-z]+'
@@ -63,7 +65,8 @@ def get_most_probable(profiler, v):
     for i in predict_data:
         for j in i:
             if j in nlargest(3, i):
-                ans.append(profiler.classes_[i.tolist().index(j)] + '\n')
+                ans.append(profiler.classes_[i.tolist().index(j)])
+                # ans.append(i.tolist().index(j))
     return ans
 
 
@@ -75,16 +78,31 @@ def preprocessing(tag, question):
     question -- Текст вопроса
 
     """
-
+    r_server = redis.StrictRedis('localhost', charset="utf-8", decode_responses=True)
     # Импорт csv базы вопросов
     qa = []
-    with open('qa_sample.csv', 'r') as f:
-        reader = csv.reader(f)
-        for row in reader:
-            if tag in row[2]:
-                qa.append(Question(row[0], row[1]))
+    parentship = {}
+    for key in r_server.scan_iter():
+        row = r_server.hgetall(key)
+        if tag in row['tags']:
+            qa.append(Question(row['q'], row['a']))
 
-    return analyze(qa, question)
+        # if row["parent"] != '':
+        #     parentship = {r_server.hget(row["parent"])['a']: row['a']}
+
+    result = analyze(qa, question)
+
+    # for res in result:
+    #     if parentship.get(res):
+
+    rdict = defaultdict(list)
+    for key in r_server.scan_iter():
+        row = r_server.hgetall(key)
+        if row['a'] in result:
+            son = r_server.hget(row['parent'], 'a')
+            rdict[row['a']].append(son)
+
+    return rdict
 
 
 def analyze(questions, args):
