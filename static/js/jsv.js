@@ -57,6 +57,7 @@ if (typeof JSV === 'undefined') {
         viewerWidth: 0,
 
         callback: '',
+        parentCallback: '',
 
         /**
          * The default duration of the node transitions
@@ -764,12 +765,12 @@ if (typeof JSV === 'undefined') {
             }
 
             if(node.type === 'array') {
-                node.name += '[' + (s.minItems || ' ') + ']';
+                // node.name += '[' + (s.minItems || ' ') + ']';
                 node.minItems = s.minItems;
             }
 
             if(node.type === 'object' && node.name !== 'item') {
-                node.name += '{ }';
+                // node.name += '{ }';
             } else if(node.type) {
                 node.name += ':' + node.type;
             }
@@ -982,6 +983,7 @@ if (typeof JSV === 'undefined') {
                 }
 
                 JSV.callback = d.name;
+                JSV.parentCallback = d.parent.name;
 
             }
         },
@@ -1118,6 +1120,7 @@ if (typeof JSV === 'undefined') {
 
             // Set widths between levels based on maxLabelLength.
             nodes.forEach(function(d) {
+                d.y = ((d.depth + 1) * 420 * 3);
                 // d.y = (d.depth * 160); //maxLabelLength * 8px
                 d.y = (d.depth * JSV.maxLabelLength * 2); //maxLabelLength * 8px
 

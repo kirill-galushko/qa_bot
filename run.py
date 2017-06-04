@@ -4,7 +4,7 @@ from main import preprocessing
 from telebot import types, TeleBot
 from telebot.util import async
 import _thread
-
+import redis
 
 tkn = '343114871:AAH7VQdTnblr9szIKwH_CtibzWrQVv-qajU'
 app = Flask(__name__)
@@ -14,6 +14,18 @@ socketio = SocketIO(app)
 bot = TeleBot(tkn)
 tags = ['CRM', 'Тестирование', 'Коммерция', 'Консалтинг',
         'Сервер', 'Интеграция', 'Телефония', 'Сайт']
+
+
+# Класс для вопросов
+class Info(object):
+    """Объект для информации о вопросе
+
+    """
+    def __init__(self, q, a, tag, parent):
+        self.q = q
+        self.a = a
+        self.tag = tag
+        self.parent = parent
 
 
 @app.route('/hello')
@@ -26,19 +38,18 @@ def json_generator(array):
     for idx, val in enumerate(array):
         if val:
             result[str(val)] = '0'
-        else:
-            result[str(idx)] = '0'
 
     return result
 
 
-def update_json(tag, question, client_id):
+def update_json(question, client_id):
     global current_chat_id
     current_chat_id = client_id
+    tag = object_info.tag
     result = preprocessing(tag, question)
     keysfor = list(result.keys())
     print(keysfor)
-    data = {'title': "Тема: " + tag + "    Вопрос: " + question,
+    data = {'title': "Тема: " + tag + "\nВопрос: " + question,
             'type': "object",
             'properties': {'first': dict(title=keysfor[0],
                                          properties=json_generator(result[keysfor[0]])),
@@ -51,32 +62,40 @@ def update_json(tag, question, client_id):
 
 
 @socketio.on('connect', namespace='/socket')
-def test_connect():
+def handler_connect():
     emit('Connect response', {'data': 'Connected'})
 
 
 @socketio.on('disconnect', namespace='/socket')
-def test_disconnect():
+def handler_disconnect():
     print('Client disconnected')
 
 
 @socketio.on('receive answer', namespace='/socket')
-def get_javascript_data(message):
-    print(message)
-    test_send(message)
+def get_javascript_data(text, parent_text):
+    object_info.a = text
+    object_info.parent = 'qa_'
+    r_server = redis.StrictRedis('localhost', charset="utf-8", decode_responses=True)
+    qty = r_server.dbsize()
+    r_server.hmset('qa_' + str(qty + 1), {'q': object_info.q,
+                                          'a': object_info.a,
+                                          'tags': object_info.tag,
+                                          'parent': object_info.parent})
+    tg_send(text)
 
 
 @async()
-def test_send(text):
+def tg_send(text):
     print(current_chat_id)
     bot.send_message(current_chat_id, text)  # номер чата с десктопного приложения
 
 
 @app.route('/viewer/')
 def get_view():
-    data = {"title": "Ожидание диалога",
-            "type": "object"
-            }
+    data = {
+        "title": "Ожидание диалога",
+        "type": "object"
+    }
     return render_template('index.html',
                            context=json.dumps(data, indent=2, separators=(', ', ': ')))
 
@@ -122,6 +141,8 @@ def handle_tags(message):
 
 @bot.message_handler(func=lambda message: message.text in tags, content_types=['text'])
 def handle_text(message):
+    global object_info
+    object_info = Info('', '', message.text, '')
     answer = """Хорошо. Задайте ваш вопрос."""
     bot.send_message(message.chat.id, answer)
 
@@ -130,12 +151,13 @@ def handle_text(message):
 
 @bot.message_handler(func=lambda message: message.text[-1:] == '?', content_types=['text'])
 def handle_text2(message):
+    object_info.q = message.text
     answer = """Пожалуйста, подождите."""
     bot.send_message(message.chat.id, answer)
 
     log(message, answer)
 
-    update_json('CRM', message.text, message.chat.id)
+    update_json(message.text, message.chat.id)
 
 
 def bot_thread():
