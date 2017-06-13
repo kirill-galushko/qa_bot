@@ -70,39 +70,27 @@ def get_most_probable(profiler, v):
     return ans
 
 
-def preprocessing(tag, question):
+def preprocessing(answer_array):
     """Функция, которая подготавливает выборку в зависимости от выбранного тэга
 
     Keyword arguments:
-    tag -- Тэг вопроса
     question -- Текст вопроса
 
     """
     r_server = redis.StrictRedis('localhost', charset="utf-8", decode_responses=True)
-    # Импорт csv базы вопросов
+
     qa = []
-    parentship = {}
     for key in r_server.scan_iter():
-        row = r_server.hgetall(key)
-        if tag in row['tags']:
-            qa.append(Question(row['q'], row['a']))
+        row = r_server.lrange(key, 0, r_server.llen(key))
 
-        # if row["parent"] != '':
-        #     parentship = {r_server.hget(row["parent"])['a']: row['a']}
+        if len(answer_array) == 1:
+            if len(row) == 2:
+                qa.append(Question(row[-1], row[-2]))
+        else:
+            if answer_array[0, -2] == row[0, -2]:
+                qa.append(Question(row[-1], row[-2]))
 
-    result = analyze(qa, question)
-
-    # for res in result:
-    #     if parentship.get(res):
-
-    rdict = defaultdict(list)
-    for key in r_server.scan_iter():
-        row = r_server.hgetall(key)
-        if row['a'] in result:
-            son = r_server.hget(row['parent'], 'a')
-            rdict[row['a']].append(son)
-
-    return rdict
+    return analyze(qa, answer_array[-1])
 
 
 def analyze(questions, args):
@@ -145,7 +133,7 @@ def analyze(questions, args):
     y_target = np.asarray(y_target)
 
     # Обучение случайного леса с заданными параметрами
-    profiler = RandomForestClassifier(max_depth=15, n_estimators=36, max_features=6)
+    profiler = RandomForestClassifier(max_depth=15, n_estimators=36, max_features=2)
     profiler.fit(x_data, y_target)
 
     v = (vectorizer.transform([str_handler(args)]).toarray())[0]

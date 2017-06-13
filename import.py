@@ -1,19 +1,22 @@
-import csv
 import redis
 
 
 def importation():
-    with open('qa_sample.csv', 'r') as f:
-        reader = csv.reader(f)
-        i = 0
-        for row in reader:
-            i = i + 1
-            print(*row)
-            if i == 156:
-                row.append('qa_1')
-            else:
-                row.append('q')
-            r_server.hmset('qa_'+str(i), {'q': row[0], 'a': row[1], 'tags': row[2], 'parent': row[3]})
+    r_server.lpush('qa_1', 'CRM')
+    r_server.lpush('qa_1', 'Какой модуль?')
+
+    r_server.lpush('qa_2', 'Консультация')
+    r_server.lpush('qa_2', 'Техническая проблема или вопросы по оплате?')
+
+    r_server.lpush('qa_3', 'Демо')
+    r_server.lpush('qa_3', 'Демо какого проекта вы бы хотели получить?')
+
+    r_server.lpush('qa_4', 'CRM')
+    r_server.lpush('qa_4', 'Контакты')
+    r_server.lpush('qa_4', 'Проблема со какими-то полями?')
+
+    r_server.lpush('qa_5', 'Я бы хотел что-то там CRM')
+    r_server.lpush('qa_5', 'Какой модуль?')
 
 r_server = redis.Redis('localhost', decode_responses=True)
 importation()

@@ -12,20 +12,9 @@ app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'
 
 socketio = SocketIO(app)
 bot = TeleBot(tkn)
-tags = ['CRM', 'Тестирование', 'Коммерция', 'Консалтинг',
-        'Сервер', 'Интеграция', 'Телефония', 'Сайт']
 
 
-# Класс для вопросов
-class Info(object):
-    """Объект для информации о вопросе
-
-    """
-    def __init__(self, q, a, tag, parent):
-        self.q = q
-        self.a = a
-        self.tag = tag
-        self.parent = parent
+answer_array = []
 
 
 @app.route('/hello')
@@ -42,21 +31,18 @@ def json_generator(array):
     return result
 
 
-def update_json(question, client_id):
+def update_json(answer_array, client_id):
     global current_chat_id
     current_chat_id = client_id
-    tag = object_info.tag
-    result = preprocessing(tag, question)
-    keysfor = list(result.keys())
-    print(keysfor)
-    data = {'title': "Тема: " + tag + "\nВопрос: " + question,
+    result = preprocessing(answer_array)
+    data = {'title': "Вопрос: " + answer_array[-1],
             'type': "object",
-            'properties': {'first': dict(title=keysfor[0],
-                                         properties=json_generator(result[keysfor[0]])),
-                           'second': dict(title=keysfor[1],
-                                          properties=json_generator(result[keysfor[1]])),
-                           'third': dict(title=keysfor[2],
-                                         properties=json_generator(result[keysfor[2]]))}}
+            'properties': {
+                'first': dict(title=result[0]),
+                'second': dict(title=result[1]),
+                'third': dict(title=result[2])
+            }
+            }
 
     socketio.emit('update json', json.dumps(data, indent=2, separators=(', ', ': ')), namespace='/socket')
 
@@ -72,15 +58,10 @@ def handler_disconnect():
 
 
 @socketio.on('receive answer', namespace='/socket')
-def get_javascript_data(text, parent_text):
-    object_info.a = text
-    object_info.parent = 'qa_'
+def get_javascript_data(text):
     r_server = redis.StrictRedis('localhost', charset="utf-8", decode_responses=True)
     qty = r_server.dbsize()
-    r_server.hmset('qa_' + str(qty + 1), {'q': object_info.q,
-                                          'a': object_info.a,
-                                          'tags': object_info.tag,
-                                          'parent': object_info.parent})
+    r_server.hmset('qa_' + str(qty + 1), {})
     tg_send(text)
 
 
@@ -128,9 +109,8 @@ def log(message, answer):
 
 @bot.message_handler(func=lambda message: message.text == 'Начать диалог', content_types=['text'])
 def handle_tags(message):
-    answer = """Выберете интересующую вас тему."""
-    keyboard = types.ReplyKeyboardMarkup(True, False)
-    keyboard.add(*[types.KeyboardButton(tag) for tag in tags])
+    keyboard = types.ReplyKeyboardRemove()
+    answer = """Что вас интересует?"""
     bot.send_message(message.chat.id,
                      answer,
                      reply_markup=keyboard,
@@ -139,25 +119,15 @@ def handle_tags(message):
     log(message, answer)
 
 
-@bot.message_handler(func=lambda message: message.text in tags, content_types=['text'])
-def handle_text(message):
-    global object_info
-    object_info = Info('', '', message.text, '')
-    answer = """Хорошо. Задайте ваш вопрос."""
-    bot.send_message(message.chat.id, answer)
-
-    log(message, answer)
-
-
-@bot.message_handler(func=lambda message: message.text[-1:] == '?', content_types=['text'])
+@bot.message_handler(func=lambda message: message.text != '', content_types=['text'])
 def handle_text2(message):
-    object_info.q = message.text
+    answer_array.append(message.text)
     answer = """Пожалуйста, подождите."""
     bot.send_message(message.chat.id, answer)
 
     log(message, answer)
 
-    update_json(message.text, message.chat.id)
+    update_json(answer_array, message.chat.id)
 
 
 def bot_thread():

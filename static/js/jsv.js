@@ -1122,7 +1122,7 @@ if (typeof JSV === 'undefined') {
             nodes.forEach(function(d) {
                 d.y = ((d.depth + 1) * 420 * 3);
                 // d.y = (d.depth * 160); //maxLabelLength * 8px
-                d.y = (d.depth * JSV.maxLabelLength * 2); //maxLabelLength * 8px
+                // d.y = (d.depth * JSV.maxLabelLength * 2); //maxLabelLength * 8px
 
                 // alternatively to keep a fixed scale one can set a fixed depth per level
                 // Normalize for fixed-depth by commenting out below line
