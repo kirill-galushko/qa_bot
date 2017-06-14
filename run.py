@@ -15,6 +15,23 @@ bot = TeleBot(tkn)
 
 
 answer_array = []
+data = {}
+
+
+def find_value(dictt, sought_value, current_path, result):
+    for key, value in dictt.items():
+        current_path.pop()
+        current_path.append(key)
+        if sought_value in key:
+            result.append(current_path[:])
+        if type(value) == type(''):
+            if sought_value in value:
+                result.append(current_path+[value])
+        else:
+            current_path.append(key)
+            result = find_value(value, sought_value, current_path, result)
+    current_path.pop()
+    return result
 
 
 @app.route('/hello')
@@ -31,20 +48,19 @@ def json_generator(array):
     return result
 
 
-def update_json(answer_array, client_id):
+def update_json(answers, client_id):
     global current_chat_id
     current_chat_id = client_id
-    result = preprocessing(answer_array)
-    data = {'title': "Вопрос: " + answer_array[-1],
-            'type': "object",
-            'properties': {
-                'first': dict(title=result[0]),
-                'second': dict(title=result[1]),
-                'third': dict(title=result[2])
-            }
-            }
+    result = preprocessing(answers)
+    get_view.data = {'title': "Вопрос: " + answers[-1],
+                     'properties': {
+                         '1': dict(title=result[0]),
+                         '2': dict(title=result[1]),
+                         '3': dict(title=result[2])
+                     }
+                     }
 
-    socketio.emit('update json', json.dumps(data, indent=2, separators=(', ', ': ')), namespace='/socket')
+    socketio.emit('update json', json.dumps(get_view.data, indent=2, separators=(', ', ': ')), namespace='/socket')
 
 
 @socketio.on('connect', namespace='/socket')
@@ -61,24 +77,28 @@ def handler_disconnect():
 def get_javascript_data(text):
     r_server = redis.StrictRedis('localhost', charset="utf-8", decode_responses=True)
     qty = r_server.dbsize()
-    r_server.hmset('qa_' + str(qty + 1), {})
+    for ans in answer_array:
+        r_server.lpush('qa_' + str(qty + 1), ans)
+    r_server.lpush('qa_' + str(qty + 1), text)
+
+    # ll = find_value(get_view.data, text, [], [])
     tg_send(text)
 
 
 @async()
 def tg_send(text):
     print(current_chat_id)
-    bot.send_message(current_chat_id, text)  # номер чата с десктопного приложения
+    bot.send_message(current_chat_id, text)
 
 
 @app.route('/viewer/')
 def get_view():
-    data = {
+    get_view.data = {
         "title": "Ожидание диалога",
         "type": "object"
     }
     return render_template('index.html',
-                           context=json.dumps(data, indent=2, separators=(', ', ': ')))
+                           context=json.dumps(get_view.data, indent=2, separators=(', ', ': ')))
 
 
 @bot.message_handler(commands=['start'])

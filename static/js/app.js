@@ -18,7 +18,7 @@
     }
 
     function sendToServer() {
-        socket.emit('receive answer', JSV.callback, JSV.parentCallback);
+        socket.emit('receive answer', JSV.callback);
     }
 
     function resetToolbar() {
@@ -53,8 +53,7 @@
                 schema: resolvedSchema,
                 viewerHeight: $('#main-body').height(),
                 viewerWidth: $('#main-body').width(),
-                callback: '',
-                parentCallback: ''
+                callback: ''
             }, function() {
                 $('#jsv-tree').css('width', '100%');
                 JSV.resizeViewer();
