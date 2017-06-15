@@ -1,21 +1,12 @@
-import argparse
-import traceback
-import glob
-import string
-import random
-import json
 from pytils import translit
 from pymorphy2 import tokenizers, MorphAnalyzer
 import re
-import csv
-import traceback
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.ensemble import RandomForestClassifier
 from random import shuffle
 from heapq import nlargest
 import numpy as np
 import redis
-from collections import defaultdict
 
 # Регулярное выражение для латинских букв
 latin_pattern = r'[A-Za-z]+'
@@ -25,7 +16,7 @@ morph = MorphAnalyzer()
 
 # Класс для вопросов
 class Question(object):
-    """Объект для хранения вопросов и ответов к ним
+    """Объект для хранения сообщения пользователя и ответа или поясняющего вопроса для него
 
     """
     def __init__(self, text, answer):
@@ -74,9 +65,10 @@ def preprocessing(answer_array):
     """Функция, которая подготавливает выборку в зависимости от выбранного тэга
 
     Keyword arguments:
-    question -- Текст вопроса
+    answer_array -- Вектор сообщений в текущем диалоге
 
     """
+
     r_server = redis.StrictRedis('localhost', charset="utf-8", decode_responses=True)
 
     qa = []
@@ -87,14 +79,14 @@ def preprocessing(answer_array):
         if len(answer_array) == 1:
             if len(row) == 2:
                 qa.append(Question(row[-2], row[-1]))
-        # elif len(answer_array) == 3:
-        #     if answer_array[0:-1] == row[0:2] and len(row) == 4:
-        #         qa.append(Question(row[-2], row[-1]))
         else:
             if answer_array[0:-1] == row[0:-2]:
                 qa.append(Question(row[-2], row[-1]))
 
-    return analyze(qa, answer_array[-1])
+    if not qa:
+        return []
+    else:
+        return analyze(qa, answer_array[-1])
 
 
 def analyze(questions, args):

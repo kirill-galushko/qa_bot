@@ -1,5 +1,5 @@
-from flask import Flask, render_template, json, request, session
-from flask_socketio import SocketIO, send, emit
+from flask import Flask, render_template, json
+from flask_socketio import SocketIO, emit
 from main import preprocessing
 from telebot import types, TeleBot
 from telebot.util import async
@@ -153,9 +153,3 @@ def bot_thread():
 if __name__ == "__main__":
     _thread.start_new_thread(bot_thread, ())
     socketio.run(app)
-
-
-
-
-
-

@@ -5,7 +5,7 @@
         setupEvents();
 
         visualizeView($('script[src*="/static/js/app.js"]').attr('inner_json'));
-
+        $("#txt-for-send").val('');
 
     }
 
@@ -17,7 +17,8 @@
     }
 
     function sendToServer() {
-        socket.emit('receive answer', JSV.callback);
+        socket.emit('receive answer', $("#txt-for-send").val());
+        $("#txt-for-send").val('');
     }
 
     function resetToolbar() {
@@ -47,8 +48,7 @@
                 plain: true,
                 schema: resolvedSchema,
                 viewerHeight: $('#main-body').height(),
-                viewerWidth: $('#main-body').width(),
-                callback: ''
+                viewerWidth: $('#main-body').width()
             }, function() {
                 $('#jsv-tree').css('width', '100%');
                 JSV.resizeViewer();

@@ -56,8 +56,6 @@ if (typeof JSV === 'undefined') {
          */
         viewerWidth: 0,
 
-        callback: '',
-
         /**
          * The default duration of the node transitions
          */
@@ -981,8 +979,7 @@ if (typeof JSV === 'undefined') {
                   panel.panel( 'open' );
                 }
 
-                JSV.callback = d.name;
-
+                $("#txt-for-send").val(d.name);
             }
         },
 

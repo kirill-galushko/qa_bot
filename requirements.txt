@@ -1,3 +1,6 @@
+sklearn
+redis
+telebot
 appdirs==1.4.3
 click==6.7
 cycler==0.10.0
