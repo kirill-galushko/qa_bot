@@ -82,13 +82,17 @@ def preprocessing(answer_array):
     qa = []
     for key in r_server.scan_iter():
         row = r_server.lrange(key, 0, r_server.llen(key))
+        row.reverse()
 
         if len(answer_array) == 1:
             if len(row) == 2:
-                qa.append(Question(row[-1], row[-2]))
+                qa.append(Question(row[-2], row[-1]))
+        # elif len(answer_array) == 3:
+        #     if answer_array[0:-1] == row[0:2] and len(row) == 4:
+        #         qa.append(Question(row[-2], row[-1]))
         else:
-            if answer_array[0, -2] == row[0, -2]:
-                qa.append(Question(row[-1], row[-2]))
+            if answer_array[0:-1] == row[0:-2]:
+                qa.append(Question(row[-2], row[-1]))
 
     return analyze(qa, answer_array[-1])
 

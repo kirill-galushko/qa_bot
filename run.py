@@ -5,6 +5,8 @@ from telebot import types, TeleBot
 from telebot.util import async
 import _thread
 import redis
+from functools import reduce
+import operator
 
 tkn = '343114871:AAH7VQdTnblr9szIKwH_CtibzWrQVv-qajU'
 app = Flask(__name__)
@@ -18,20 +20,20 @@ answer_array = []
 data = {}
 
 
-def find_value(dictt, sought_value, current_path, result):
-    for key, value in dictt.items():
-        current_path.pop()
-        current_path.append(key)
-        if sought_value in key:
-            result.append(current_path[:])
-        if type(value) == type(''):
-            if sought_value in value:
-                result.append(current_path+[value])
-        else:
-            current_path.append(key)
-            result = find_value(value, sought_value, current_path, result)
-    current_path.pop()
-    return result
+def getFromDict(dataDict, mapList):
+    return reduce(operator.getitem, mapList, dataDict)
+
+
+def setInDict(dataDict, mapList, value):
+    getFromDict(dataDict, mapList[:-1])[mapList[-1]] = value
+
+
+def verbose_to_compact(verbose):
+    return { item['title']: verbose_to_compact(item['properties']) for item in verbose }
+
+
+def compact_to_verbose(compact):
+    return [{'title': key, 'properties': compact_to_verbose(value)} for key, value in compact.items()]
 
 
 @app.route('/hello')
@@ -39,26 +41,22 @@ def hello():
     return 'Hello World'
 
 
-def json_generator(array):
-    result = {}
-    for idx, val in enumerate(array):
-        if val:
-            result[str(val)] = '0'
-
-    return result
-
-
 def update_json(answers, client_id):
     global current_chat_id
     current_chat_id = client_id
     result = preprocessing(answers)
-    get_view.data = {'title': "Вопрос: " + answers[-1],
-                     'properties': {
-                         '1': dict(title=result[0]),
-                         '2': dict(title=result[1]),
-                         '3': dict(title=result[2])
-                     }
-                     }
+    branch = {'title': answers[-1],
+              'properties':
+                  [{'title': key, 'properties': []} for key in result]
+              }
+
+    if len(answer_array) == 1:
+        get_view.data = branch
+    else:
+        new = verbose_to_compact([get_view.data])
+        new_branch = verbose_to_compact([branch])
+        setInDict(new, answer_array[:-1], new_branch)
+        get_view.data = compact_to_verbose(new)[0]
 
     socketio.emit('update json', json.dumps(get_view.data, indent=2, separators=(', ', ': ')), namespace='/socket')
 
@@ -75,27 +73,25 @@ def handler_disconnect():
 
 @socketio.on('receive answer', namespace='/socket')
 def get_javascript_data(text):
+    answer_array.append(text)
+
     r_server = redis.StrictRedis('localhost', charset="utf-8", decode_responses=True)
     qty = r_server.dbsize()
     for ans in answer_array:
         r_server.lpush('qa_' + str(qty + 1), ans)
-    r_server.lpush('qa_' + str(qty + 1), text)
 
-    # ll = find_value(get_view.data, text, [], [])
     tg_send(text)
 
 
 @async()
 def tg_send(text):
-    print(current_chat_id)
     bot.send_message(current_chat_id, text)
 
 
 @app.route('/viewer/')
 def get_view():
     get_view.data = {
-        "title": "Ожидание диалога",
-        "type": "object"
+        "title": "Ожидание диалога"
     }
     return render_template('index.html',
                            context=json.dumps(get_view.data, indent=2, separators=(', ', ': ')))

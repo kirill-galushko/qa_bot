@@ -12,7 +12,6 @@
 
     function setupEvents() {
 
-        $('#visualizeButton').click(visualizeView);
         $('#sendButton').click(sendToServer);
     
     }
@@ -38,10 +37,6 @@
         NProgress.start();
         
         resetToolbar();
-        
-        $('#visualizeButton').attr("class", "btn btn-primary active");
-        
-        $('#editor').css('display', 'none');
         
         $('#main-body').empty();
         

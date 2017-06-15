@@ -904,11 +904,11 @@ if (typeof JSV === 'undefined') {
          * Helper functions for collapsing nodes.
          */
         collapse: function (d) {
-            if (d.children) {
-                d._children = d.children;
-                //d._children.forEach(collapse);
-                d.children = null;
-            }
+            // if (d.children) {
+            //     d._children = d.children;
+            //     //d._children.forEach(collapse);
+            //     d.children = null;
+            // }
         },
 
         /**
@@ -1118,7 +1118,7 @@ if (typeof JSV === 'undefined') {
 
             // Set widths between levels based on maxLabelLength.
             nodes.forEach(function(d) {
-                d.y = ((d.depth + 1) * 420 * 3);
+                d.y = ((d.depth + 1) * 750);
                 // d.y = (d.depth * 160); //maxLabelLength * 8px
                 // d.y = (d.depth * JSV.maxLabelLength * 2); //maxLabelLength * 8px
 
