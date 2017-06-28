@@ -7,41 +7,75 @@ import _thread
 import redis
 from functools import reduce
 import operator
+import config
 
-tkn = '343114871:AAH7VQdTnblr9szIKwH_CtibzWrQVv-qajU'
+# Создание объекта приложения Flask
 app = Flask(__name__)
-app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'
 
+# Создание объекта SocketIO
 socketio = SocketIO(app)
-bot = TeleBot(tkn)
 
+# Создание объекта TeleBot
+bot = TeleBot(config.token)
 
+# Массив для хранения сообщений диалога
 answer_array = []
+
+# Словарь для хранения json представления графа диалога
 data = {}
 
 
 def getFromDict(dataDict, mapList):
+    """Функция получения ветви в json по массиву значений в каждом узле
+
+    Keyword arguments:
+    dataDict -- json дерево
+    mapList -- массив значений
+
+    """
     return reduce(operator.getitem, mapList, dataDict)
 
 
 def setInDict(dataDict, mapList, value):
+    """Функция задания значения ветви в json по массиву значений в каждом узле
+
+    Keyword arguments:
+    dataDict -- json дерево
+    mapList -- массив значений
+    value -- новое значение
+
+    """
     getFromDict(dataDict, mapList[:-1])[mapList[-1]] = value
 
 
 def verbose_to_compact(verbose):
+    """Функция для преобразования подробного представления json в компактное
+
+    Keyword arguments:
+    verbose -- подробный json
+
+    """
     return { item['title']: verbose_to_compact(item['properties']) for item in verbose }
 
 
 def compact_to_verbose(compact):
+    """Функция для преобразования компактного представления json в подробное
+
+    Keyword arguments:
+    compact -- компактный json
+
+    """
     return [{'title': key, 'properties': compact_to_verbose(value)} for key, value in compact.items()]
 
 
-@app.route('/hello')
-def hello():
-    return 'Hello World'
-
-
 def update_json(answers, client_id):
+    """Функция для обновления объекта графа и id клиента
+
+    Keyword arguments:
+    answers -- массив диалога
+    client_id -- id клиента
+
+    """
     global current_chat_id
     current_chat_id = client_id
     result = preprocessing(answers)
@@ -61,18 +95,53 @@ def update_json(answers, client_id):
     socketio.emit('update json', json.dumps(get_view.data, indent=2, separators=(', ', ': ')), namespace='/socket')
 
 
+# ВЫВОД ЛОГОВ
+print(bot.get_me())
+
+
+def log(message, answer):
+    """Функция-логгер
+
+    Keyword arguments:
+    message -- объект полученного сообщения
+    answer -- текст ответа
+
+    """
+    print("\n --------")
+    from datetime import datetime
+    print(datetime.now())
+    print("Сообщение от {0} {1}. (id = {2}) "
+          "\n Текст - {3}". format(message.from_user.first_name,
+                                   message.from_user.last_name,
+                                   str(message.from_user.id),
+                                   message.text))
+    print(answer)
+
+
 @socketio.on('connect', namespace='/socket')
 def handler_connect():
+    """Функция обработчика подключения клиента
+
+    """
     emit('Connect response', {'data': 'Connected'})
 
 
 @socketio.on('disconnect', namespace='/socket')
 def handler_disconnect():
+    """Функция обработчика отключения клиента
+
+    """
     print('Client disconnected')
 
 
 @socketio.on('receive answer', namespace='/socket')
 def get_javascript_data(text):
+    """Функция обработчика полученного ответа с веб-клиента
+
+    Keyword arguments:
+    text -- текст сообщения
+
+    """
     answer_array.append(text)
 
     r_server = redis.StrictRedis('localhost', charset="utf-8", decode_responses=True)
@@ -85,11 +154,20 @@ def get_javascript_data(text):
 
 @async()
 def tg_send(text):
+    """Функция асинхронной отправки сообщения
+
+    Keyword arguments:
+    text -- текст сообщения
+
+    """
     bot.send_message(current_chat_id, text)
 
 
 @app.route('/viewer/')
 def get_view():
+    """Функция рендеринга начального экрана
+
+    """
     get_view.data = {
         "title": "Ожидание диалога"
     }
@@ -98,7 +176,13 @@ def get_view():
 
 
 @bot.message_handler(commands=['start'])
-def handle_text(message):
+def handle_start(message):
+    """Функция обработчика запуска бота
+
+    Keyword arguments:
+    message -- объект сообщения
+
+    """
     answer = "Начало диалога"
     log(message, answer)
     keyboard = types.ReplyKeyboardMarkup(True, False)
@@ -108,23 +192,15 @@ def handle_text(message):
                      reply_markup=keyboard,
                      parse_mode="Markdown")
 
-# ВЫВОД ЛОГОВ
-print(bot.get_me())
-
-
-def log(message, answer):
-    print("\n --------")
-    from datetime import datetime
-    print(datetime.now())
-    print("Сообщение от {0} {1}. (id = {2}) \n Текст - {3}". format(message.from_user.first_name,
-                                                                    message.from_user.last_name,
-                                                                    str(message.from_user.id),
-                                                                    message.text))
-    print(answer)
-
 
 @bot.message_handler(func=lambda message: message.text == 'Начать диалог', content_types=['text'])
-def handle_tags(message):
+def handle_begin(message):
+    """Функция обработчика сообщения "Начать диалог"
+
+    Keyword arguments:
+    message -- объект сообщения
+
+    """
     keyboard = types.ReplyKeyboardRemove()
     answer = """Что вас интересует?"""
     bot.send_message(message.chat.id,
@@ -136,7 +212,13 @@ def handle_tags(message):
 
 
 @bot.message_handler(func=lambda message: message.text != '', content_types=['text'])
-def handle_text2(message):
+def handle_text(message):
+    """Функция обработчика сообщения
+
+    Keyword arguments:
+    message -- объект сообщения
+
+    """
     answer_array.append(message.text)
     answer = """Пожалуйста, подождите."""
     bot.send_message(message.chat.id, answer)
@@ -147,6 +229,9 @@ def handle_text2(message):
 
 
 def bot_thread():
+    """Функция для запуска треда бота
+
+    """
     bot.polling(none_stop=True)
 
 

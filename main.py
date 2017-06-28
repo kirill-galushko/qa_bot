@@ -3,7 +3,6 @@ from pymorphy2 import tokenizers, MorphAnalyzer
 import re
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.ensemble import RandomForestClassifier
-from random import shuffle
 from heapq import nlargest
 import numpy as np
 import redis
@@ -14,7 +13,7 @@ latin_pattern = r'[A-Za-z]+'
 morph = MorphAnalyzer()
 
 
-# Класс для вопросов
+# Класс для хранения соответствия вопросных сообщений и ответных
 class Question(object):
     """Объект для хранения сообщения пользователя и ответа или поясняющего вопроса для него
 
@@ -57,12 +56,11 @@ def get_most_probable(profiler, v):
         for j in i:
             if j in nlargest(3, i):
                 ans.append(profiler.classes_[i.tolist().index(j)])
-                # ans.append(i.tolist().index(j))
     return ans
 
 
 def preprocessing(answer_array):
-    """Функция, которая подготавливает выборку в зависимости от выбранного тэга
+    """Функция, которая подготавливает выборку в зависимости текущего состояния массива диалога
 
     Keyword arguments:
     answer_array -- Вектор сообщений в текущем диалоге
@@ -107,15 +105,11 @@ def analyze(questions, args):
         corpus.append(str_handler(qst.text))
 
     # Обучение векторайзера на уже подготовленной базе
-    corpus = corpus
     vectorizer.fit_transform(corpus)
 
-    # Перемешивание выборки для внесения элемента случайности
     data_target_tuples = []
     for qst in questions:
         data_target_tuples.append((str_handler(qst.text), qst.answer))
-
-    shuffle(data_target_tuples)
 
     # Трансформация вопросов в матричный вид, на основе TFID критерия
     x_data = []

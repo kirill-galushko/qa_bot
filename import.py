@@ -55,9 +55,6 @@ def importation():
     r_server.lpush('qa_11', 'Да, все сломалось')
     r_server.lpush('qa_11', 'Можно подробнее описать проблему?')
 
-
-
-
 r_server = redis.Redis('localhost', decode_responses=True)
 importation()
 

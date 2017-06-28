@@ -11,9 +11,7 @@
 
 
     function setupEvents() {
-
         $('#sendButton').click(sendToServer);
-    
     }
 
     function sendToServer() {
