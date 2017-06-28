@@ -1,6 +1,6 @@
 from flask import Flask, render_template, json
 from flask_socketio import SocketIO, emit
-from main import preprocessing
+from ml import preprocessing
 from telebot import types, TeleBot
 from telebot.util import async
 import _thread
